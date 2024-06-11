@@ -193,7 +193,7 @@ $Env.AWS_SESSION_TOKEN="${creds.SessionToken}"`);
 
     function fetchGrants(authState) {
         console.log(authState)
-        fetch(api_endpoint + '/ListGrants', {
+        fetch(api_endpoint + 'ListGrants', {
             method: 'GET',
             mode: 'cors',
             headers: {
