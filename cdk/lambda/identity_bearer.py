@@ -115,7 +115,7 @@ def fetch_credentials(event, token, account_id, target, permission):
     try:
         logger.debug('Getting IdC token with CreateTokenWithIAM')
         url = oidc_client.create_token_with_iam(
-            clientId=config.TOKEN_EXCHANGE_APP_ARN,
+            clientId=config.IDC_CUSTOMER_APP_ARN,
             grantType=config.JWT_BEARER_GRANT_TYPE,
             assertion=token
         )
