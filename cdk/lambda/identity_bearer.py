@@ -40,6 +40,7 @@ access_denied_response: dict = {
 
 
 def fetch_console_url(credentials, bucket, prefix):
+    # TODO: Make the session duration configurable. In the future we can have a settings UI.
     session_duration = 43200
     params = {
         'Action': 'getSigninToken',
