@@ -16,8 +16,11 @@
  *
  */
 import React, {useState, useEffect} from 'react';
+import { Routes, Route, useNavigate } from "react-router-dom";
+import { CustomNavigationClient } from "./utils/NavigationClient";
 import {
     useMsal,
+    MsalProvider,
     MsalAuthenticationTemplate,
 } from "@azure/msal-react";
 import {
@@ -50,8 +53,8 @@ import CopyToClipboard from "@cloudscape-design/components/copy-to-clipboard";
 import {applyMode, applyDensity, Density, Mode} from '@cloudscape-design/global-styles';
 import {I18nProvider} from '@cloudscape-design/components/i18n';
 import messages from '@cloudscape-design/components/i18n/messages/all.en';
-import config from './config';
-
+import Settings from "./settings";
+const authRequest = {scopes: [window.SCOPE]};
 const LOCALE = 'en';
 
 function ErrorComponent({error}) {
@@ -80,6 +83,28 @@ function S3TargetComponent(props) {
 }
 
 export default function App({pca}) {
+    const navigate = useNavigate();
+    const navigationClient = new CustomNavigationClient(navigate);
+    pca.setNavigationClient(navigationClient);
+
+    return (
+        <MsalProvider instance={pca}>
+            <Pages />
+        </MsalProvider>
+    );
+}
+
+function Pages() {
+    return (
+        <Routes>
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/logout" element={<Home />} />
+            <Route path="/" element={<Home />} />
+        </Routes>
+    );
+}
+
+function Home() {
     const {instance, accounts, inProgress} = useMsal()
     const [helpPanel, setHelpPanel] = useState(false);
     const [navigationPanel, setNavigationPanel] = useState(true);
@@ -90,7 +115,6 @@ export default function App({pca}) {
     const [flashbarItems, setFlashbarItems] = useState([]);
     const [idpCredsModal, setIdpCredsModal] = useState(false);
     const [grantsCredsModal, setGrantsCredsModal] = useState(false);
-    const authRequest = {scopes: [config.scope]};
     const [credentials, setCredentials] = useState("");
     const [grantsList, setGrantsList] = useState([]);
     const [macLinuxCreds, setMacLinuxCreds] = useState("");
@@ -128,14 +152,14 @@ export default function App({pca}) {
                 applyDensity(Density.Comfortable);
             }
         } else if (e.detail.id === 'signout') {
-            pca.logout();
+            instance.logoutRedirect();
         }
     };
 
     function fetchGrantCredentials(event, item) {
         // We can only use the token once. Every request need to refresh the token
         instance.acquireTokenSilent({
-            scopes: [config.scope],
+            scopes: [window.SCOPE],
             account: accounts[0]
         }).then((response) => {
             if (response) {
@@ -144,9 +168,7 @@ export default function App({pca}) {
         }).catch(async (error) => {
             if (error instanceof InteractionRequiredAuthError) {
                 // fallback to interaction when silent call fails
-                return instance.acquireTokenPopup({
-                    scopes: [config.scope]
-                });
+                return instance.acquireTokenPopup(authRequest);
             }
         });
         setWebConsoleUrl('');
@@ -161,7 +183,7 @@ export default function App({pca}) {
             Scope: item.GrantScope,
             Permission: item.Permission
         }
-        fetch(config.api_endpoint + 'FetchCredentials?' + new URLSearchParams(params), {
+        fetch(window.API_ENDPOINT + '/FetchCredentials?' + new URLSearchParams(params), {
             method: 'GET',
             mode: 'cors',
             headers: {
@@ -215,7 +237,7 @@ $Env.AWS_SESSION_TOKEN="${creds.SessionToken}"`);
     function fetchGrants() {
         // We need to refresh the tokens to ensure that your idToken is valid
         instance.acquireTokenSilent({
-            scopes: [config.scope],
+            scopes: [window.SCOPE],
             account: accounts[0]
         }).then((response) => {
             if (response) {
@@ -224,12 +246,10 @@ $Env.AWS_SESSION_TOKEN="${creds.SessionToken}"`);
         }).catch(async (error) => {
             if (error instanceof InteractionRequiredAuthError) {
                 // fallback to interaction when silent call fails
-                return instance.acquireTokenPopup({
-                    scopes: [config.scope]
-                });
+                return instance.acquireTokenPopup(authRequest);
             }
         });
-        fetch(config.api_endpoint + '/ListGrants', {
+        fetch(window.API_ENDPOINT + '/ListGrants', {
             method: 'GET',
             mode: 'cors',
             headers: {
@@ -264,7 +284,7 @@ $Env.AWS_SESSION_TOKEN="${creds.SessionToken}"`);
     useEffect(() => {
         if (accounts.length > 0 && inProgress === 'startup') {
             instance.acquireTokenSilent({
-                scopes: [config.scope],
+                scopes: [window.SCOPE],
                 account: accounts[0]
             }).then((response) => {
                 if (response) {
@@ -273,9 +293,7 @@ $Env.AWS_SESSION_TOKEN="${creds.SessionToken}"`);
             }).catch(async (error) => {
                 if (error instanceof InteractionRequiredAuthError) {
                     // fallback to interaction when silent call fails
-                    return instance.acquireTokenPopup({
-                        scopes: [config.scope]
-                    });
+                    return instance.acquireTokenPopup(authRequest);
                 }
             });
         }
@@ -287,7 +305,7 @@ $Env.AWS_SESSION_TOKEN="${creds.SessionToken}"`);
             const account = event.payload.account;
             instance.setActiveAccount(account);
             instance.acquireTokenSilent({
-                scopes: [config.scope],
+                scopes: [window.SCOPE],
                 account: accounts[0]
             }).then((response) => {
                 if (response) {
@@ -296,9 +314,7 @@ $Env.AWS_SESSION_TOKEN="${creds.SessionToken}"`);
             }).catch(async (error) => {
                 if (error instanceof InteractionRequiredAuthError) {
                     // fallback to interaction when silent call fails
-                    return instance.acquireTokenPopup({
-                        scopes: [config.scope]
-                    });
+                    return instance.acquireTokenPopup(authRequest);
                 }
             });
         } else if (event.eventType === EventType.ACCOUNT_REMOVED) {
@@ -345,7 +361,8 @@ $Env.AWS_SESSION_TOKEN="${creds.SessionToken}"`);
                                 },
                                 {
                                     id: "settings-project",
-                                    text: "Project settings"
+                                    text: "Project settings",
+                                    href: "/settings",
                                 }
                             ]
                         },
@@ -413,7 +430,10 @@ $Env.AWS_SESSION_TOKEN="${creds.SessionToken}"`);
                                 href: '#',
                                 text: 'Portal',
                             }}
-                            items={[{type: 'link', text: `S3 Access Grants`, href: `#`}]}
+                            items={[
+                                {type: 'link', text: `S3 Access Grants`, href: `#`},
+                                {type: 'link', text: `Settings`, href: `/settings`}
+                            ]}
                         />
                     }
                     notifications={

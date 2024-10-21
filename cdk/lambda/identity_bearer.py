@@ -37,6 +37,13 @@ access_denied_response: dict = {
     },
     "body": json.dumps({"response": 'Missing Authorization'})
 }
+IDENTITY_STORE_ID = os.getenv('IDENTITY_STORE_ID', config.IDENTITY_STORE_ID)
+USERNAME_ATTRIBUTE = os.getenv('USERNAME_ATTRIBUTE', config.USERNAME_ATTRIBUTE)
+ID_CUSTOMER_APP_ARN = os.getenv('CUSTOMER_APP_ARN', config.IDC_CUSTOMER_APP_ARN)
+JWT_BEARER_GRANT_TYPE = os.getenv('JWT_BEARER_GRANT_TYPE', config.JWT_BEARER_GRANT_TYPE)
+TRANSIENT_ROLE_ARN = os.getenv('TRANSIENT_ROLE_ARN', config.TRANSIENT_ROLE_ARN)
+AUDIENCE = os.getenv('AUDIENCE', config.AUDIENCE)
+JWKS_URL = os.getenv('JWKS_URL', config.JWKS_URL)
 
 
 def fetch_console_url(credentials, bucket, prefix):
@@ -72,12 +79,11 @@ def fetch_console_url(credentials, bucket, prefix):
     return url
 
 
-def list_grants(event, token):
-    identity_store = config.IDENTITY_STORE_ID
-    username = token[config.USERNAME_ATTRIBUTE]
+def list_grants(event: dict, token: list):
+    username = token[USERNAME_ATTRIBUTE]
     try:
         resp = idc_client.get_user_id(
-            IdentityStoreId=identity_store,
+            IdentityStoreId=IDENTITY_STORE_ID,
             AlternateIdentifier={
                 'UniqueAttribute': {
                     "AttributePath": "userName",
@@ -116,16 +122,16 @@ def fetch_credentials(event, token, account_id, target, permission):
     try:
         logger.debug('Getting IdC token with CreateTokenWithIAM')
         url = oidc_client.create_token_with_iam(
-            clientId=config.IDC_CUSTOMER_APP_ARN,
-            grantType=config.JWT_BEARER_GRANT_TYPE,
+            clientId=ID_CUSTOMER_APP_ARN,
+            grantType=JWT_BEARER_GRANT_TYPE,
             assertion=token
         )
         logger.debug(f'SSO-OIDC response: {url}')
         # This token is a response from our call to Identity Center. I assume it is safe to not validate the signature
         sts_identity_context = jwt.decode(url['idToken'], options={"verify_signature": False})['sts:identity_context']
         sts_credentials = sts_client.assume_role(
-            RoleArn=config.TRANSIENT_ROLE_ARN,
-            RoleSessionName=f'transient-s3ag-{config.IDENTITY_STORE_ID}',
+            RoleArn=TRANSIENT_ROLE_ARN,
+            RoleSessionName=f'transient-s3ag-{IDENTITY_STORE_ID}',
             ProvidedContexts=[
                 {
                     'ProviderArn': 'arn:aws:iam:aws::contextProvider/IdentityCenter',
@@ -187,12 +193,12 @@ def handler(event, _context):
     try:
         # Validating JWT token before proceeding (https://pyjwt.readthedocs.io/en/stable/usage.html)
         # URL with the public keys
-        jwks_url = config.JWKS_URL
+        jwks_url = JWKS_URL
         jwks_client = jwt.PyJWKClient(jwks_url)
         token = event.get('headers', {}).get('Authorization', '')
         # Entra ID - Application (Client) ID if we receive an idToken
         # or the standard hash id if we receive an accessToken
-        aud = config.AUDIENCE
+        aud = AUDIENCE
         signing_key = jwks_client.get_signing_key_from_jwt(token)
         payload = jwt.decode(token,
                              signing_key.key,

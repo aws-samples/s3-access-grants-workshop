@@ -4,17 +4,17 @@ import {PublicClientApplication} from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter as Router } from "react-router-dom";
 import "@cloudscape-design/global-styles/index.css"
 import App from './App';
-import app_config from './config';
 
 const config = {
     auth: {
-        clientId: app_config.clientId,
-        authority: 'https://login.microsoftonline.com/' + app_config.tenantId + '/v2.0',
+        clientId: window.AUDIENCE,
+        authority: 'https://login.microsoftonline.com/' + window.TENANT_ID + '/v2.0',
         redirectUri: "/",
         postLogoutRedirectUri: "/",
-        scope: app_config.scope
+        scope: window.SCOPE
     },
     cache: {
         cacheLocation: "localStorage", // "sessionStorage"
@@ -28,19 +28,18 @@ msalInstance.initialize().then(() => {
         msalInstance.setActiveAccount(msalInstance.getAllAccounts()[0]);
     }
 
-    const myAccounts = msalInstance.getAllAccounts();
-    console.log(myAccounts);
+    // const myAccounts = msalInstance.getAllAccounts();
     const root = ReactDOM.createRoot(document.getElementById('root'));
 
     root.render(
         <React.StrictMode>
-            <MsalProvider instance={msalInstance}>
-                <App pca={msalInstance}/>
-            </ MsalProvider>
+            <Router>
+                <MsalProvider instance={msalInstance}>
+                    <App pca={msalInstance}/>
+                </ MsalProvider>
+            </Router>
         </React.StrictMode>
     );
 
 });
-
-
 

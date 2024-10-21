@@ -15,9 +15,8 @@
  *
  *
  */
-// eslint-disable-next-line import/no-anonymous-default-export
-const CLIENT_ID = process.env.SPA_CLIENT_ID || process.env.CLIENT_ID || '<AUDIENCE>';
-const ISSUER = process.env.ISSUER || 'https://dev-<DIRECTORY>.okta.com/oauth2/default';
+let AUDIENCE = window.AUDIENCE || '<AUDIENCE>';
+let ISSUER = window.ISSUER || 'https://dev-<DIRECTORY>.okta.com/oauth2/default';
 const isLocalhost = Boolean(
     window.location.hostname === 'localhost' ||
     // [::1] is the IPv6 localhost address.
@@ -33,10 +32,9 @@ if (isLocalhost){
     // This URL can be used when testing locally
     REDIRECT_URI = 'http://localhost:3000/login/callback';
 }
-// API Gateway endpoint deployed by CDK
-export const api_endpoint = "https://<API-ID>.execute-api.<REGION>.amazonaws.com/prod/";
+export const api_endpoint = window.API_ENDPOINT || "https://<API-ID>.execute-api.<REGION>.amazonaws.com/prod/";
 export const oidcConfig = {
-    clientId: CLIENT_ID,
+    clientId: AUDIENCE,
     issuer: ISSUER,
     redirectUri: REDIRECT_URI,
     scopes: ['openid', 'profile', 'email'],
