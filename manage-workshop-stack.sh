@@ -2,7 +2,7 @@
 
 STACK_OPERATION=$1
 echo "$STACK_OPERATION"
-if [[ "$STACK_OPERATION" == "create" || "$STACK_OPERATION" == "update" ]]; then
+if [[ "$STACK_OPERATION" == "Create" || "$STACK_OPERATION" == "Update" ]]; then
     echo "Building Frond-end ENTRA"
     cd frontend-entra_id
     npm install
@@ -15,7 +15,7 @@ if [[ "$STACK_OPERATION" == "create" || "$STACK_OPERATION" == "update" ]]; then
 
     echo "Done."
     exit  0
-elif [ "$STACK_OPERATION" == "delete" ]; then
+elif [ "$STACK_OPERATION" == "Delete" ]; then
     echo "Deleting resources"
     exit  0
 else
