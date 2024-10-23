@@ -15,7 +15,8 @@ if [[ "$STACK_OPERATION" == "create" || "$STACK_OPERATION" == "update" ]]; then
 
     echo "Done."
 elif [ "$STACK_OPERATION" == "delete" ]; then
-    # delete workshop resources
+    echo "Deleting resources"
+    exit  0
 else
     echo "Invalid stack operation!"
     exit 1
