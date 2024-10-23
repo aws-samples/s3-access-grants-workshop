@@ -1,7 +1,7 @@
 #!/bin/bash
 
 STACK_OPERATION=$1
-
+echo "$STACK_OPERATION"
 if [[ "$STACK_OPERATION" == "create" || "$STACK_OPERATION" == "update" ]]; then
     echo "Building Frond-end ENTRA"
     cd frontend-entra_id
@@ -14,6 +14,7 @@ if [[ "$STACK_OPERATION" == "create" || "$STACK_OPERATION" == "update" ]]; then
     npm run build
 
     echo "Done."
+    exit  0
 elif [ "$STACK_OPERATION" == "delete" ]; then
     echo "Deleting resources"
     exit  0
