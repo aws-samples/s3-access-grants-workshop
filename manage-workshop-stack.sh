@@ -9,10 +9,21 @@ if [[ "$STACK_OPERATION" == "Create" || "$STACK_OPERATION" == "Update" ]]; then
     npm run build
 
     echo "Building Front-end OKTA"
-    cd ../frontend-entra
+    cd ../frontend-okta
     npm install
     npm run build
 
+    echo "Building Backend"
+    cd ../cdk
+    npm install -g aws-cdk
+
+    python -m ensurepip --upgrade
+    python -m pip install --upgrade pip
+    python -m pip install --upgrade virtualenv
+    pip install -r requirements.txt
+
+    cdk bootstrap
+    cdk deploy
     echo "Done."
     exit  0
 elif [ "$STACK_OPERATION" == "Delete" ]; then
