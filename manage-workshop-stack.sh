@@ -23,7 +23,7 @@ if [[ "$STACK_OPERATION" == "Create" || "$STACK_OPERATION" == "Update" ]]; then
     pip install -r requirements.txt
 
     cdk bootstrap
-    cdk deploy
+    cdk deploy --require-approval never
     echo "Done."
     exit  0
 elif [ "$STACK_OPERATION" == "Delete" ]; then
