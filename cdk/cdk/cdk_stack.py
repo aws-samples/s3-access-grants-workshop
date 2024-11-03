@@ -61,6 +61,7 @@ class CdkStack(Stack):
                                      default_behavior=cloudfront.BehaviorOptions(
                                          origin=origins.S3Origin(webapp_okta_bucket),
                                          cache_policy=cloudfront.CachePolicy(
+                                             self, "OktaCachePolicy",
                                              default_ttl=Duration.seconds(60)  # Set TTL to 60 seconds
                                          ),
                                          function_associations=[cloudfront.FunctionAssociation(
@@ -77,7 +78,10 @@ class CdkStack(Stack):
             existing_bucket_obj=webapp_entra_bucket,
             insert_http_security_headers=False,
             cloud_front_distribution_props={
-                "cache_policy": cloudfront.CachePolicy(default_ttl=Duration.seconds(60))
+                "cache_policy": cloudfront.CachePolicy(
+                    self, "EntraIdCachePolicy",
+                    default_ttl=Duration.seconds(60)
+                )
             }
         ).cloud_front_web_distribution
 
