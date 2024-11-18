@@ -58,19 +58,19 @@ class CdkStack(Stack):
                                           runtime=cloudfront.FunctionRuntime.JS_2_0
                                           )
         cdn_okta = cloudfront.Distribution(self, "s3ag-webapp-okta-cdn",
-                                     default_behavior=cloudfront.BehaviorOptions(
-                                         origin=origins.S3Origin(webapp_okta_bucket),
-                                         cache_policy=cloudfront.CachePolicy(
-                                             self, "OktaCachePolicy",
-                                             default_ttl=Duration.seconds(60)  # Set TTL to 60 seconds
-                                         ),
-                                         function_associations=[cloudfront.FunctionAssociation(
-                                             function=cf_function,
-                                             event_type=cloudfront.FunctionEventType.VIEWER_REQUEST
-                                         )]
-                                     ),
-                                     default_root_object='index.html'
-                                     )
+                                           default_behavior=cloudfront.BehaviorOptions(
+                                               origin=origins.S3Origin(webapp_okta_bucket),
+                                               cache_policy=cloudfront.CachePolicy(
+                                                   self, "OktaCachePolicy",
+                                                   default_ttl=Duration.seconds(60)  # Set TTL to 60 seconds
+                                               ),
+                                               function_associations=[cloudfront.FunctionAssociation(
+                                                   function=cf_function,
+                                                   event_type=cloudfront.FunctionEventType.VIEWER_REQUEST
+                                               )]
+                                           ),
+                                           default_root_object='index.html'
+                                           )
 
         cdn_entra = CloudFrontToS3(
             self,
@@ -152,6 +152,91 @@ class CdkStack(Stack):
             )
         )
 
+        s3ag_location_role = iam.Role(self, 'S3LocationRole',
+                                      assumed_by=iam.ServicePrincipal("access-grants.s3.amazonaws.com"),
+                                      trust_policy=iam.PolicyDocument(
+                                          statements=[
+                                              iam.PolicyStatement(
+                                                  effect=iam.Effect.ALLOW,
+                                                  actions=["sts:AssumeRole", "sts:SetSourceIdentity", "sts:SetContext"],
+                                                  principals=[iam.ServicePrincipal("access-grants.s3.amazonaws.com")],
+                                              )
+                                          ]
+                                      )
+                                      )
+        s3ag_location_role.add_to_policy(iam.PolicyStatement(
+            sid="ObjectLevelReadPermissions",
+            effect=iam.Effect.ALLOW,
+            actions=[
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:GetObjectAcl",
+                "s3:GetObjectVersionAcl",
+                "s3:ListMultipartUploadParts"
+            ],
+            resources=['arn:aws:s3:::*'],
+            conditions={
+                "StringEquals": {
+                    "aws:ResourceAccount": self.account,
+                },
+                "ArnEquals": {
+                    "s3:AccessGrantsInstanceArn": [f"arn:aws:s3:{self.region}:{self.account}:access-grants/default"]
+                }
+            }
+        ))
+        s3ag_location_role.add_to_policy(iam.PolicyStatement(
+            sid="ObjectLevelWritePermissions",
+            effect=iam.Effect.ALLOW,
+            actions=[
+                "s3:PutObject",
+                "s3:PutObjectAcl",
+                "s3:PutObjectVersionAcl",
+                "s3:DeleteObject",
+                "s3:DeleteObjectVersion",
+                "s3:AbortMultipartUpload"
+            ],
+            resources=['arn:aws:s3:::*'],
+            conditions={
+                "StringEquals": {
+                    "aws:ResourceAccount": self.account,
+                },
+                "ArnEquals": {
+                    "s3:AccessGrantsInstanceArn": [f"arn:aws:s3:{self.region}:{self.account}:access-grants/default"]
+                }
+            }
+        ))
+        s3ag_location_role.add_to_policy(iam.PolicyStatement(
+            sid="BucketLevelReadPermissions",
+            effect=iam.Effect.ALLOW,
+            actions=["s3:ListBucket"],
+            resources=['arn:aws:s3:::*'],
+            conditions={
+                "StringEquals": {
+                    "aws:ResourceAccount": self.account,
+                },
+                "ArnEquals": {
+                    "s3:AccessGrantsInstanceArn": [f"arn:aws:s3:{self.region}:{self.account}:access-grants/default"]
+                }
+            }
+        ))
+        s3ag_location_role.add_to_policy(iam.PolicyStatement(
+            sid="KMSPermissions",
+            effect=iam.Effect.ALLOW,
+            actions=[
+                "kms:Decrypt",
+                "kms:GenerateDataKey"
+            ],
+            resources=['arn:aws:s3:::*'],
+            conditions={
+                "StringEquals": {
+                    "aws:ResourceAccount": self.account,
+                },
+                "ArnEquals": {
+                    "s3:AccessGrantsInstanceArn": [f"arn:aws:s3:{self.region}:{self.account}:access-grants/default"]
+                }
+            }
+        ))
+
         list_grants_resource = api.root.add_resource("ListGrants")
         fetch_credentials_resource = api.root.add_resource("FetchCredentials")
         list_grants_resource.add_method('GET')
@@ -165,3 +250,5 @@ class CdkStack(Stack):
                   value=identity_bearer_role.role_arn)
         CfnOutput(self, "TransientRole",
                   value=user_transient_role.role_arn)
+        CfnOutput(self, "LocationRole",
+                  value=s3ag_location_role.role_arn)
