@@ -163,8 +163,8 @@ export default function App() {
                         setMacLinuxCreds(`export AWS_ACCESS_KEY_ID="${creds.AccessKeyId}"
 export AWS_SECRET_ACCESS_KEY="${creds.SecretAccessKey}"
 export AWS_SESSION_TOKEN="${creds.SessionToken}"`);
-                        setWindowsCreds(`SET AWS_ACCESS_KEY_ID=${creds.AccessKeyId}
-SET AWS_SECRET_ACCESS_KEY=${creds.SecretAccessKey}
+                        setWindowsCreds(`SET AWS_ACCESS_KEY_ID=${creds.AccessKeyId}\r\n
+SET AWS_SECRET_ACCESS_KEY=${creds.SecretAccessKey}\r\n
 SET AWS_SESSION_TOKEN=${creds.SessionToken}`);
                         setPowershellCreds(`$Env:AWS_ACCESS_KEY_ID="${creds.AccessKeyId}"
 $Env.AWS_SECRET_ACCESS_KEY="${creds.SecretAccessKey}"
