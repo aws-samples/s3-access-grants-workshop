@@ -151,27 +151,22 @@ class CdkStack(Stack):
                 allow_methods=apigateway.Cors.ALL_METHODS
             )
         )
-
-        s3ag_principal = iam.ServicePrincipal("access-grants.s3.amazonaws.com")
-        s3ag_principal.add_to_assume_role_policy(iam.PolicyDocument(
-            statements=[
-                iam.PolicyStatement(
-                    effect=iam.Effect.ALLOW,
-                    actions=[
-                        "sts:AssumeRole",
-                        "sts:SetSourceIdentity",
-                        "sts:SetContext"
-                    ],
-                    principals=[iam.ServicePrincipal("access-grants.s3.amazonaws.com")]
-                )
-            ]
-        ))
         s3ag_location_role = iam.Role(self, 'S3LocationRole',
-                                      assumed_by=s3ag_principal,
+                                      assumed_by=iam.ServicePrincipal("access-grants.s3.amazonaws.com"),
                                       role_name="S3AGLocationRole",
                                       description="S3 Access Grant Location Role"
                                       )
-
+        s3ag_location_role.assume_role_policy.add_statements(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "sts:AssumeRole",
+                    "sts:SetSourceIdentity",
+                    "sts:SetContext"
+                ],
+                principals=[iam.ServicePrincipal("access-grants.s3.amazonaws.com")]
+            )
+        )
         s3ag_location_role.add_to_policy(iam.PolicyStatement(
             sid="ObjectLevelReadPermissions",
             effect=iam.Effect.ALLOW,
