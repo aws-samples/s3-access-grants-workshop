@@ -84,6 +84,31 @@ After that, you can redeploy the application and test
 The Cloudfront distribution URL should be used later to update your IdP Signin redirect URL
 
 
+# Alternative deployment: Amazon EKS
+
+The CDK stack above deploys the application on Lambda and API Gateway. The `eks` folder contains
+an alternative deployment that runs the same application on Amazon EKS, which is useful if your
+applications are containerized.
+
+The point of this option is that S3 Access Grants has no native EKS integration and does not need
+one: the token exchange is application-level, so `identity_bearer.py` runs unmodified on EKS. All
+of the identity configuration is shared with the Lambda deployment and needs no changes:
+
+- the same IdP application (only a new SPA redirect URL for the new endpoint)
+- the same Identity Center trusted token issuer and customer managed application
+- the same S3 Access Grants instance, location, and grants
+- the same transient role
+
+What is different is only the compute plumbing: the pod gets its own IAM role through IRSA
+(with the same permissions the Lambda execution role has), and the service is exposed through a
+load balancer with CloudFront in front of it for HTTPS.
+
+See [eks/README.md](eks/README.md) for the deployment steps.
+
+Additional requirements for this option:
+- An EKS cluster with an IAM OIDC provider (`eksctl` and `kubectl`)
+
+
 ## Version Log
 
 0.0.1 - 04/18/2024 - Initial version

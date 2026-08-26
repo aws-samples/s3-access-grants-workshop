@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "IdentityBearerPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListAccessGrants",
+        "identitystore:GetUserId",
+        "sso-oauth:CreateTokenWithIAM",
+        "sts:AssumeRole",
+        "sts:SetContext"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
