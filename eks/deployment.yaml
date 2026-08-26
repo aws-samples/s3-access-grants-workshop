@@ -1,0 +1,72 @@
+# S3 Access Grants identity-bearer service on EKS.
+# Uses a public python base image with code injected via ConfigMap,
+# so no container image build/registry is required.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s3ag-identity-bearer
+  namespace: s3ag
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: s3ag-identity-bearer
+  template:
+    metadata:
+      labels:
+        app: s3ag-identity-bearer
+    spec:
+      serviceAccountName: s3ag-identity-bearer
+      containers:
+        - name: api
+          image: public.ecr.aws/docker/library/python:3.11-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install --no-cache-dir flask "PyJWT[crypto]==2.8.0" "boto3==1.34.89" gunicorn && \
+              cp /code/*.py /app/ && cd /app && \
+              python -c "import boto3,tarfile,os; os.makedirs('/app/build',exist_ok=True); boto3.client('s3').download_file('<ASSETS_BUCKET>','eks/frontend-build.tar.gz','/tmp/build.tar.gz'); tarfile.open('/tmp/build.tar.gz').extractall('/app/build'); print('frontend build extracted')" && \
+              exec gunicorn --bind 0.0.0.0:8080 --workers 2 app:app
+          env:
+            - name: ACCOUNT_ID
+              value: "<ACCOUNT_ID>"
+            - name: LOG_LEVEL
+              value: DEBUG
+            - name: AWS_DEFAULT_REGION
+              value: <REGION>
+          workingDir: /app
+          volumeMounts:
+            - name: code
+              mountPath: /code
+            - name: workdir
+              mountPath: /app
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 5
+      volumes:
+        - name: code
+          configMap:
+            name: s3ag-code
+        - name: workdir
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: s3ag-identity-bearer
+  namespace: s3ag
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: instance
+spec:
+  type: LoadBalancer
+  selector:
+    app: s3ag-identity-bearer
+  ports:
+    - port: 80
+      targetPort: 8080

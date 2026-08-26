@@ -229,7 +229,7 @@ $Env.AWS_SESSION_TOKEN="${creds.SessionToken}"`);
                 });
             }
         });
-        fetch(config.api_endpoint + '/ListGrants', {
+        fetch(config.api_endpoint + 'ListGrants', {
             method: 'GET',
             mode: 'cors',
             headers: {
